@@ -2,13 +2,41 @@
 //  main.cpp
 //  LMD-K-means-Clustering-Algorithm
 //
-//  Created by Tommaso Palmisano on 3/18/25.
+//  Created by Tommaso Palmisano on 3/10/25.
 //
 
 #include <iostream>
+#include <fstream>
+#include <vector>
 
-int main(int argc, const char * argv[]) {
-  // insert code here...
-  std::cout << "Hello, World!\n";
+#include "utility.hpp"
+#include "timer.hpp"
+#include "kmeans.hpp"
+
+int main() {
+  std::vector< std::vector<float> > images;
+  std::vector<int> labels;
+  
+  KMeans kmeans;
+  
+  {
+    Timer timer("load_MNIST");
+    load_MNIST("/Users/palmi/XcodeProjects/LMD-K-means-Clustering-Algorithm/LMD-K-means-Clustering-Algorithm/data/mnist-images.txt", "/Users/palmi/XcodeProjects/LMD-K-means-Clustering-Algorithm/LMD-K-means-Clustering-Algorithm/data/mnist-labels.txt", images, labels);
+  }
+  
+  {
+    Timer timer("ueclidean distance test");
+    kmeans.euclideanDistance(images[0], images[1]);
+  }
+  
+  /*std::cout << "No. Images: " << images.size() << std::endl;
+  for (int i=0; i<28; i++) {
+    for (int j=0; j<28; j++)
+      std::cout<<images[0][i*28+j] << " ";
+    std::cout << std::endl;
+  }
+  
+  std::cout << "Image is " << labels[0] << std::endl;*/
+  
   return 0;
 }
