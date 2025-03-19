@@ -37,13 +37,15 @@ float KMeans::euclideanDistance(std::vector<float> v1, std::vector<float> v2) {
 }
 
 
+/**
 
+ */
 float KMeans::optimizedEuclideanDistance(const std::vector<float>& v1, const std::vector<float>& v2) {
   float sum = 0.0f;
   size_t size = v1.size();
   size_t i = 0;
   
-  if (v1.size() != v2.size()){
+  if (size != v2.size()){
     throw KMeansException("The two vectors must have the same dimension.");
   }
   
@@ -64,4 +66,22 @@ float KMeans::optimizedEuclideanDistance(const std::vector<float>& v1, const std
   }
   
   return std::sqrt(sum);
+}
+
+
+
+std::vector<float> KMeans::mean(const std::vector< std::vector<float> >& vectors) {
+  std::vector<float> mean( vectors[0].size(), 0);
+  
+  for(size_t i = 0; i < vectors.size(); i++) {
+    for(size_t j = 0; j < vectors[i].size(); j++) {
+      mean[j] += vectors[i][j];
+    }
+  }
+  
+  for(size_t i = 0; i < mean.size(); i++) {
+    mean[i] /= vectors.size();
+  }
+  
+  return mean;
 }

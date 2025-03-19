@@ -26,12 +26,17 @@ int main() {
   
   {
     Timer timer("Euclidean distance test");
-    std::cout << kmeans.euclideanDistance(images[0], images[1]) << std::endl;
+    kmeans.euclideanDistance(images[0], images[1]);
   }
   
   {
     Timer timer("Optimized euclidean distance test");
-    std::cout << kmeans.optimizedEuclideanDistance(images[0], images[1]) << std::endl;
+    kmeans.optimizedEuclideanDistance(images[0], images[1]);
+  }
+  
+  {
+    Timer timer("Centroid calculation test");
+    kmeans.mean(images);
   }
   
   /*std::cout << "No. Images: " << images.size() << std::endl;
