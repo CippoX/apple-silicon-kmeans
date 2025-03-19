@@ -6,6 +6,8 @@
 //
 
 #include "kmeans.hpp"
+#include "timer.hpp"
+#include "utility.hpp"
 
 
 class KMeansException : public std::exception {
@@ -49,15 +51,21 @@ float KMeans::optimizedEuclideanDistance(const std::vector<float>& v1, const std
     throw KMeansException("The two vectors must have the same dimension.");
   }
   
-  for(; i + 3 < size; i += 4) {
-    float32x4_t simd_v1 = vld1q_f32(&v1[i]);
-    float32x4_t simd_v2 = vld1q_f32(&v2[i]);
-    float32x4_t simd_diff = vsubq_f32(simd_v1, simd_v2);
-    float32x4_t simd_squared = vmulq_f32(simd_diff, simd_diff);
+  for(; i + 7 < size; i += 8) {
+    float32x4x2_t simd_v1 = vld1q_f32_x2(&v1[i]);
+    float32x4x2_t simd_v2 = vld1q_f32_x2(&v2[i]);
+    
+    float32x4x2_t simd_diff;
+    simd_diff.val[0] = vsubq_f32(simd_v1.val[0], simd_v2.val[0]);
+    simd_diff.val[1] = vsubq_f32(simd_v1.val[1], simd_v2.val[1]);
+    
+    float32x4x2_t simd_squared;
+    simd_squared.val[0] = vmulq_f32(simd_diff.val[0], simd_diff.val[0]);
+    simd_squared.val[1] = vmulq_f32(simd_diff.val[1], simd_diff.val[1]);
     
     float *res = (float *)&simd_squared;
     
-    sum += res[0] + res[1] + res[2] + res[3];
+    sum += res[0] + res[1] + res[2] + res[3] + res[4] + res[5] + res[6] + res[3];
   }
   
   for (; i < size; i++) {
@@ -88,34 +96,37 @@ std::vector<float> KMeans::calculateCentroid(const std::vector< std::vector<floa
 
 
 
-std::vector<float> KMeans::optimizedCalculateCentroid(const std::vector< std::vector<float> >& vectors) {
+std::vector<float> KMeans::optimizedCalculateCentroid(const std::vector<std::vector<float>>& vectors) {
   size_t number_of_vectors = vectors.size();
   size_t vectors_space_dimension = vectors[0].size();
-  std::vector<float> mean( vectors_space_dimension, 0);
-  
-  for(size_t i = 0; i < number_of_vectors; i++) {
+  std::vector<float> mean(vectors_space_dimension, 0);
+
+  for (size_t i = 0; i < number_of_vectors; i++) {
     size_t j = 0;
-    for(; j + 3 < vectors_space_dimension; j += 4) {
-      float32x4_t simd_v = vld1q_f32(&vectors[i][j]);
-      float32x4_t simd_mean = vld1q_f32(&mean[j]);
-      
-      float32x4_t simd_sum = vaddq_f32(simd_v, simd_mean);
-      
-      vst1q_f32(&mean[j], simd_sum);
-    }
     
+    for (; j + 7 < vectors_space_dimension; j += 8) {
+      float32x4x2_t simd_v = vld1q_f32_x2(&vectors[i][j]);
+      float32x4x2_t simd_mean = vld1q_f32_x2(&mean[j]);
+      simd_mean.val[0] = vaddq_f32(simd_mean.val[0], simd_v.val[0]);
+      simd_mean.val[1] = vaddq_f32(simd_mean.val[1], simd_v.val[1]);
+      
+      vst1q_f32_x2(&mean[j], simd_mean);
+    }
+
     for (; j < vectors_space_dimension; j++) {
       mean[j] += vectors[i][j];
     }
   }
-  
+
   size_t i = 0;
   float32x4_t inv_num_vectors = vdupq_n_f32(1.0f / number_of_vectors);
   
-  for (; i + 4 <= vectors_space_dimension; i += 4) {
-    float32x4_t simd_mean = vld1q_f32(&mean[i]);
-    float32x4_t simd_div = vmulq_f32(simd_mean, inv_num_vectors);
-    vst1q_f32(&mean[i], simd_div);
+  for (; i + 7 < vectors_space_dimension; i += 8) {
+    float32x4x2_t simd_mean = vld1q_f32_x2(&mean[i]);
+    simd_mean.val[0] = vmulq_f32(simd_mean.val[0], inv_num_vectors);
+    simd_mean.val[1] = vmulq_f32(simd_mean.val[1], inv_num_vectors);
+
+    vst1q_f32_x2(&mean[i], simd_mean);
   }
 
   for (; i < vectors_space_dimension; i++) {
@@ -123,4 +134,54 @@ std::vector<float> KMeans::optimizedCalculateCentroid(const std::vector< std::ve
   }
   
   return mean;
+}
+
+
+
+
+
+
+void KMeans::test() {
+  std::vector< std::vector<float> > images;
+  std::vector<int> labels;
+  
+  KMeans kmeans;
+  
+  {
+    Timer timer("load_MNIST");
+    load_MNIST("/Users/palmi/XcodeProjects/LMD-K-means-Clustering-Algorithm/LMD-K-means-Clustering-Algorithm/data/mnist-images.txt", "/Users/palmi/XcodeProjects/LMD-K-means-Clustering-Algorithm/LMD-K-means-Clustering-Algorithm/data/mnist-labels.txt", images, labels);
+  }
+  
+  {
+    Timer timer("Euclidean distance test");
+    kmeans.euclideanDistance(images[0], images[1]);
+  }
+  
+  {
+    Timer timer("Optimized euclidean distance test");
+    kmeans.optimizedEuclideanDistance(images[0], images[1]);
+  }
+  
+  
+  {
+    Timer timer("Centroid calculation test");
+    std::vector<float> v = kmeans.calculateCentroid(images);
+    
+    float sum = 0.0f;
+    for (float e : v) {
+      sum += e;
+    }
+    std::cout << "sum of means " << sum << std::endl;
+  }
+  
+  {
+    Timer timer("Optimized centroid calculation test");
+    std::vector<float> v = kmeans.optimizedCalculateCentroid(images);
+    
+    float sum = 0.0f;
+    for (float e : v) {
+      sum += e;
+    }
+    std::cout << "sum of means " << sum << std::endl;
+  }
 }
