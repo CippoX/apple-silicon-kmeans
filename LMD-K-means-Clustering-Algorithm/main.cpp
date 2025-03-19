@@ -25,8 +25,13 @@ int main() {
   }
   
   {
-    Timer timer("ueclidean distance test");
-    kmeans.euclideanDistance(images[0], images[1]);
+    Timer timer("Euclidean distance test");
+    std::cout << kmeans.euclideanDistance(images[0], images[1]) << std::endl;
+  }
+  
+  {
+    Timer timer("Optimized euclidean distance test");
+    std::cout << kmeans.optimizedEuclideanDistance(images[0], images[1]) << std::endl;
   }
   
   /*std::cout << "No. Images: " << images.size() << std::endl;

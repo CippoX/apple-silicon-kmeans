@@ -11,10 +11,12 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include <arm_neon.h>
 
 class KMeans {
 public:
   float euclideanDistance(std::vector<float> v1, std::vector<float> v2);
+  float optimizedEuclideanDistance(const std::vector<float>& v1, const std::vector<float>& v2);
 };
 
 #endif /* kmeans_hpp */
