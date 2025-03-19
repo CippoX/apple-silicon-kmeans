@@ -17,7 +17,8 @@ class KMeans {
 public:
   float euclideanDistance(std::vector<float> v1, std::vector<float> v2);
   float optimizedEuclideanDistance(const std::vector<float>& v1, const std::vector<float>& v2);
-  std::vector<float> mean(const std::vector< std::vector<float> >& vectors);
+  std::vector<float> calculateCentroid(const std::vector< std::vector<float> >& vectors);
+  std::vector<float> optimizedCalculateCentroid(const std::vector< std::vector<float> >& vectors);
 };
 
 #endif /* kmeans_hpp */

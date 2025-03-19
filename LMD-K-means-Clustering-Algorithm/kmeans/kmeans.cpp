@@ -70,7 +70,7 @@ float KMeans::optimizedEuclideanDistance(const std::vector<float>& v1, const std
 
 
 
-std::vector<float> KMeans::mean(const std::vector< std::vector<float> >& vectors) {
+std::vector<float> KMeans::calculateCentroid(const std::vector< std::vector<float> >& vectors) {
   std::vector<float> mean( vectors[0].size(), 0);
   
   for(size_t i = 0; i < vectors.size(); i++) {
@@ -81,6 +81,45 @@ std::vector<float> KMeans::mean(const std::vector< std::vector<float> >& vectors
   
   for(size_t i = 0; i < mean.size(); i++) {
     mean[i] /= vectors.size();
+  }
+  
+  return mean;
+}
+
+
+
+std::vector<float> KMeans::optimizedCalculateCentroid(const std::vector< std::vector<float> >& vectors) {
+  size_t number_of_vectors = vectors.size();
+  size_t vectors_space_dimension = vectors[0].size();
+  std::vector<float> mean( vectors_space_dimension, 0);
+  
+  for(size_t i = 0; i < number_of_vectors; i++) {
+    size_t j = 0;
+    for(; j + 3 < vectors_space_dimension; j += 4) {
+      float32x4_t simd_v = vld1q_f32(&vectors[i][j]);
+      float32x4_t simd_mean = vld1q_f32(&mean[j]);
+      
+      float32x4_t simd_sum = vaddq_f32(simd_v, simd_mean);
+      
+      vst1q_f32(&mean[j], simd_sum);
+    }
+    
+    for (; j < vectors_space_dimension; j++) {
+      mean[j] += vectors[i][j];
+    }
+  }
+  
+  size_t i = 0;
+  float32x4_t inv_num_vectors = vdupq_n_f32(1.0f / number_of_vectors);
+  
+  for (; i + 4 <= vectors_space_dimension; i += 4) {
+    float32x4_t simd_mean = vld1q_f32(&mean[i]);
+    float32x4_t simd_div = vmulq_f32(simd_mean, inv_num_vectors);
+    vst1q_f32(&mean[i], simd_div);
+  }
+
+  for (; i < vectors_space_dimension; i++) {
+    mean[i] *= (1.0f / number_of_vectors);
   }
   
   return mean;
