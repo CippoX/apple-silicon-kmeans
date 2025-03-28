@@ -11,9 +11,11 @@
 
 #include "kmeans.hpp"
 
+// g++-14 main.cpp -fopenmp -o main
+
 int main() {
  
-  KMeans kmenas;
+  KMeans kmenas(10, 784);
   kmenas.test();
   
   
