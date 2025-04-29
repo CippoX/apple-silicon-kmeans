@@ -10,13 +10,23 @@
 #include <vector>
 
 #include "kmeans.hpp"
+#include "timer.hpp"
+#include "utility.hpp"
+
 
 // g++-14 main.cpp -fopenmp -o main
 
 int main() {
+  std::vector<std::vector<float>> images;
+  std::vector<int> labels;
+  
+  {
+    Timer timer("load_MNIST");
+    load_MNIST("/Users/palmi/XcodeProjects/LMD-K-means-Clustering-Algorithm/LMD-K-means-Clustering-Algorithm/data/mnist-images.txt", "/Users/palmi/XcodeProjects/LMD-K-means-Clustering-Algorithm/LMD-K-means-Clustering-Algorithm/data/mnist-labels.txt", images, labels);
+  }
  
-  KMeans kmenas(10, 784);
-  kmenas.test();
+  KMeans kmeans(images, labels, 10, 784);
+  kmeans.test();
   
   
   /*std::cout << "No. Images: " << images.size() << std::endl;

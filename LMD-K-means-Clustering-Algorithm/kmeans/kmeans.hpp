@@ -15,6 +15,8 @@
 
 class KMeans {
 private:
+  std::vector<std::vector<float>> images;
+  std::vector<int> labels;
   std::vector<std::vector<float>> centroids;
   size_t number_of_centroids;
   size_t vectorspace_dimension;
@@ -24,9 +26,13 @@ private:
   float optimizedEuclideanDistance(const std::vector<float>& v1, const std::vector<float>& v2);
   std::vector<float> calculateCentroid(const std::vector< std::vector<float> >& vectors);
   std::vector<float> optimizedCalculateCentroid(const std::vector< std::vector<float> >& vectors);
+  float distanceFromClosestCentroid(const std::vector<float> &point);
   
 public:
-  KMeans(size_t k, size_t _vectorspace_dimension);
+  KMeans(const std::vector<std::vector<float>> &images,
+         const std::vector<int> &_labels,
+         size_t _number_of_centroids,
+         size_t _vectorspace_dimension);
   void test();
 };
 

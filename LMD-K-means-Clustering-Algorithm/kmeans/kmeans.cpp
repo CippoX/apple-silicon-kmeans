@@ -7,7 +7,7 @@
 
 #include "kmeans.hpp"
 #include "timer.hpp"
-#include "utility.hpp"
+#include <random>
 
 
 class KMeansException : public std::exception {
@@ -24,7 +24,13 @@ public:
 
 
 
-KMeans::KMeans(size_t _number_of_centroids, size_t _vectorspace_dimension) {
+KMeans::KMeans(const std::vector< std::vector<float>> &_images,
+               const std::vector<int> &_labels,
+               size_t _number_of_centroids,
+               size_t _vectorspace_dimension) {
+  
+  images = _images;
+  labels = _labels;
   number_of_centroids = _number_of_centroids;
   vectorspace_dimension = _vectorspace_dimension;
 }
@@ -142,14 +148,7 @@ std::vector<float> KMeans::optimizedCalculateCentroid(const std::vector<std::vec
 
 
 
-void KMeans::test() {
-  std::vector< std::vector<float> > images;
-  std::vector<int> labels;
-  
-  {
-    Timer timer("load_MNIST");
-    load_MNIST("/Users/palmi/XcodeProjects/LMD-K-means-Clustering-Algorithm/LMD-K-means-Clustering-Algorithm/data/mnist-images.txt", "/Users/palmi/XcodeProjects/LMD-K-means-Clustering-Algorithm/LMD-K-means-Clustering-Algorithm/data/mnist-labels.txt", images, labels);
-  }
+void KMeans::test() {  
   
   {
     Timer timer("Euclidean distance test");
@@ -183,10 +182,57 @@ void KMeans::test() {
     }
     std::cout << "sum of means " << sum << std::endl;
   }
+  
+  kmeans_pp();
+  
+  for (int k=0; k<centroids.size(); k++) {
+    for (int i=0; i<28; i++) {
+      for (int j=0; j<28; j++)
+        std::cout<<centroids[k][i*28+j] << " ";
+      std::cout << std::endl;
+    }
+  }
 }
 
 
 
-void KMeans::kmeans_pp() {
+float KMeans::distanceFromClosestCentroid(const std::vector<float> &point) {
+  float minimum_distance = std::numeric_limits<float>::max();
   
+  for(size_t i = 0; i < centroids.size(); i++) {
+    minimum_distance = std::min(minimum_distance, optimizedEuclideanDistance(point, centroids[i]));
+  }
+  
+  return minimum_distance;
+}
+
+
+
+// Initialize the centroids using k-means++
+void KMeans::kmeans_pp() {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<size_t> uni(0, images.size() - 1);
+  
+  // Choose the first centroid uniformly from the data points
+  size_t first = uni(gen);
+  centroids.push_back(images[first]);
+  std::cout << first << std::endl;
+  
+  // Select all the other centroids
+  for (size_t c = 0; c < number_of_centroids - 1; c++) {
+    std::vector<float> squared_distances;
+
+    for (size_t i = 0; i < images.size(); i++) {
+      float minimum_distance = distanceFromClosestCentroid(images[i]);
+      squared_distances.push_back(minimum_distance * minimum_distance);
+    }
+
+    std::discrete_distribution<size_t> weighted_dist(squared_distances.begin(), squared_distances.end());
+    size_t next_centroid_index = weighted_dist(gen);
+    
+    std::cout << next_centroid_index << std::endl;
+    
+    centroids.push_back(images[next_centroid_index]);
+  }
 }
