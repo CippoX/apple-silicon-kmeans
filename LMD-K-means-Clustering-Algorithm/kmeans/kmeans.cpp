@@ -33,9 +33,21 @@ KMeans::KMeans(const std::vector< std::vector<float>> &_images,
   labels = _labels;
   number_of_centroids = _number_of_centroids;
   vectorspace_dimension = _vectorspace_dimension;
+  clusters = std::vector<int>(_images.size(), 0);
 }
 
 
+
+/**===----------------------------------------------------------------------===
+
+ - Utility Functions
+ - euclideanDistance
+ - optimizedEuclideanDistance
+ - calculateCentroid
+ - optimizedCalculateCentroid
+ - distanceFromClosestCentroid
+ 
+===----------------------------------------------------------------------=== **/
 
 float KMeans::euclideanDistance(std::vector<float> v1, std::vector<float> v2) {
   if (v1.size() != v2.size()){
@@ -208,6 +220,24 @@ float KMeans::distanceFromClosestCentroid(const std::vector<float> &point) {
 
 
 
+/// Unsupervided Measure, a.k.a intertial
+float KMeans::clusteringError() {
+  
+  
+  return 0.0f;
+}
+
+
+
+/**===----------------------------------------------------------------------===
+
+ - Clustering Functions
+ - kmeans_pp
+ - assignmentStep
+ 
+===----------------------------------------------------------------------=== **/
+
+
 // Initialize the centroids using k-means++
 void KMeans::kmeans_pp() {
   std::random_device rd;
@@ -236,3 +266,11 @@ void KMeans::kmeans_pp() {
     centroids.push_back(images[next_centroid_index]);
   }
 }
+
+
+
+void KMeans::assignmentStep() {
+  
+}
+
+

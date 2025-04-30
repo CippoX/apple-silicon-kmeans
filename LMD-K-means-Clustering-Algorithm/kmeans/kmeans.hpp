@@ -15,18 +15,27 @@
 
 class KMeans {
 private:
+  /// Points to clusters
   std::vector<std::vector<float>> images;
   std::vector<int> labels;
+  
+  /// Clustering varibles
+  std::vector<int> clusters;
   std::vector<std::vector<float>> centroids;
   size_t number_of_centroids;
   size_t vectorspace_dimension;
   
-  void kmeans_pp();
+  /// Utility Functions
   float euclideanDistance(std::vector<float> v1, std::vector<float> v2);
   float optimizedEuclideanDistance(const std::vector<float>& v1, const std::vector<float>& v2);
   std::vector<float> calculateCentroid(const std::vector< std::vector<float> >& vectors);
   std::vector<float> optimizedCalculateCentroid(const std::vector< std::vector<float> >& vectors);
   float distanceFromClosestCentroid(const std::vector<float> &point);
+  float clusteringError();
+  
+  /// Clustering Fuctions
+  void kmeans_pp();
+  void assignmentStep();
   
 public:
   KMeans(const std::vector<std::vector<float>> &images,
