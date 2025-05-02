@@ -33,7 +33,7 @@ KMeans::KMeans(const std::vector< std::vector<float>> &_images,
   labels = _labels;
   number_of_centroids = _number_of_centroids;
   vectorspace_dimension = _vectorspace_dimension;
-  clusters = std::vector<int>(_images.size(), 0);
+  clusters = std::vector<size_t>(_images.size(), 0);
 }
 
 
@@ -56,7 +56,7 @@ float KMeans::euclideanDistance(std::vector<float> v1, std::vector<float> v2) {
   
   float sum = 0.0;
   
-  for(int i = 0; i < vectorspace_dimension; i++) {
+  for(size_t i = 0; i < vectorspace_dimension; i++) {
     sum += std::pow(v1[i] - v2[i], 2);
   }
   
@@ -158,52 +158,43 @@ std::vector<float> KMeans::optimizedCalculateCentroid(const std::vector<std::vec
 
 
 
+std::vector<float> KMeans::optimizedCalculateCentroidFromIndexes(const std::vector<size_t> &vectors_indexes) {
+  size_t number_of_vectors = vectors_indexes.size();
+  std::vector<float> mean(vectorspace_dimension, 0);
 
+  for (size_t i = 0; i < number_of_vectors; i++) {
+    size_t j = 0;
+    
+    for (; j + 7 < vectorspace_dimension; j += 8) {
+      float32x4x2_t simd_v = vld1q_f32_x2(&images[vectors_indexes[i]][j]);
+      float32x4x2_t simd_mean = vld1q_f32_x2(&mean[j]);
+      simd_mean.val[0] = vaddq_f32(simd_mean.val[0], simd_v.val[0]);
+      simd_mean.val[1] = vaddq_f32(simd_mean.val[1], simd_v.val[1]);
+      
+      vst1q_f32_x2(&mean[j], simd_mean);
+    }
 
-void KMeans::test() {  
-  
-  {
-    Timer timer("Euclidean distance test");
-    euclideanDistance(images[0], images[1]);
-  }
-  
-  {
-    Timer timer("Optimized euclidean distance test");
-    optimizedEuclideanDistance(images[0], images[1]);
-  }
-  
-  
-  {
-    Timer timer("Centroid calculation test");
-    std::vector<float> v = calculateCentroid(images);
-    
-    float sum = 0.0f;
-    for (float e : v) {
-      sum += e;
-    }
-    std::cout << "sum of means " << sum << std::endl;
-  }
-  
-  {
-    Timer timer("Optimized centroid calculation test");
-    std::vector<float> v = optimizedCalculateCentroid(images);
-    
-    float sum = 0.0f;
-    for (float e : v) {
-      sum += e;
-    }
-    std::cout << "sum of means " << sum << std::endl;
-  }
-  
-  kmeans_pp();
-  
-  for (int k=0; k<centroids.size(); k++) {
-    for (int i=0; i<28; i++) {
-      for (int j=0; j<28; j++)
-        std::cout<<centroids[k][i*28+j] << " ";
-      std::cout << std::endl;
+    for (; j < vectorspace_dimension; j++) {
+      mean[j] += images[vectors_indexes[i]][j];
     }
   }
+
+  size_t i = 0;
+  float32x4_t inv_num_vectors = vdupq_n_f32(1.0f / number_of_vectors);
+  
+  for (; i + 7 < vectorspace_dimension; i += 8) {
+    float32x4x2_t simd_mean = vld1q_f32_x2(&mean[i]);
+    simd_mean.val[0] = vmulq_f32(simd_mean.val[0], inv_num_vectors);
+    simd_mean.val[1] = vmulq_f32(simd_mean.val[1], inv_num_vectors);
+
+    vst1q_f32_x2(&mean[i], simd_mean);
+  }
+
+  for (; i < vectorspace_dimension; i++) {
+    mean[i] *= (1.0f / number_of_vectors);
+  }
+  
+  return mean;
 }
 
 
@@ -220,12 +211,52 @@ float KMeans::distanceFromClosestCentroid(const std::vector<float> &point) {
 
 
 
-/// Unsupervided Measure, a.k.a intertial
-float KMeans::clusteringError() {
+size_t KMeans::indexOfClosestCentroid(const std::vector<float> &point) {
+  float minimum_distance = std::numeric_limits<float>::max();
+  size_t index = 0;
   
+  for(size_t i = 0; i < centroids.size(); i++) {
+    float distance_from_centroid = optimizedEuclideanDistance(point, centroids[i]);
+    
+    if (distance_from_centroid < minimum_distance) {
+      minimum_distance = distance_from_centroid;
+      index = i;
+    }
+  }
   
-  return 0.0f;
+  return index;
 }
+
+
+
+std::vector<size_t> KMeans::returnCluterElemetsIndexes(const size_t &cluster) {
+  std::vector<size_t> indexes;
+  
+  for(size_t i = 0; i < clusters.size(); i++) {
+    if (clusters[i] == cluster) {
+      indexes.push_back(i);
+    }
+  }
+  
+  return indexes;
+}
+
+
+
+/// **Unsupervided Measure, a.k.a intertia**
+/// Note: by accesing by cluster, since we are jumping from one image to another, we are not taking into account
+/// cache locality, and we and up with a lot of cache misses, which results in 11.000ms just the execution of
+/// clusteringError(). By accessing by image, we avoid this overhead.
+float KMeans::clusteringError() {
+  float E = 0.0f;
+  
+  for (size_t i = 0; i < images.size(); i++) {
+    E += optimizedEuclideanDistance(images[i], centroids[clusters[i]]);
+  }
+  return E;
+}
+
+
 
 
 
@@ -270,7 +301,72 @@ void KMeans::kmeans_pp() {
 
 
 void KMeans::assignmentStep() {
-  
+  for(size_t i = 0; i < images.size(); i++) {
+    clusters[i] = indexOfClosestCentroid(images[i]);
+  }
 }
 
+
+
+void KMeans::updateStep() {
+  for(size_t i = 0; i < centroids.size(); i++) {
+    centroids[i] = optimizedCalculateCentroidFromIndexes(returnCluterElemetsIndexes(i));
+  }
+}
+
+
+
+void KMeans::test() {
+  
+  {
+    Timer timer("Euclidean distance test");
+    euclideanDistance(images[0], images[1]);
+  }
+  
+  {
+    Timer timer("Optimized euclidean distance test");
+    optimizedEuclideanDistance(images[0], images[1]);
+  }
+  
+  
+  {
+    Timer timer("Centroid calculation test");
+    std::vector<float> v = calculateCentroid(images);
+    
+    float sum = 0.0f;
+    for (float e : v) {
+      sum += e;
+    }
+    std::cout << "sum of means " << sum << std::endl;
+  }
+  
+  {
+    Timer timer("Optimized centroid calculation test");
+    std::vector<float> v = optimizedCalculateCentroid(images);
+    
+    float sum = 0.0f;
+    for (float e : v) {
+      sum += e;
+    }
+    std::cout << "sum of means " << sum << std::endl;
+  }
+  
+  kmeans_pp();
+  
+  float E = 0.0f;
+  
+  {
+    Timer timer("Clustering");
+    for (size_t i = 0; i < 10; i++) {
+      assignmentStep();
+      updateStep();
+      float E_aux = clusteringError();
+      float delta = E_aux - E;
+      E = E_aux;
+      
+      std::cout << "Error " << E << std::endl;
+      std::cout << "Error Delta: " << delta << std::endl;
+    }
+  }
+}
 

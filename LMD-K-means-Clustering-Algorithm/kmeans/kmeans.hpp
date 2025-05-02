@@ -20,7 +20,7 @@ private:
   std::vector<int> labels;
   
   /// Clustering varibles
-  std::vector<int> clusters;
+  std::vector<size_t> clusters;
   std::vector<std::vector<float>> centroids;
   size_t number_of_centroids;
   size_t vectorspace_dimension;
@@ -28,14 +28,18 @@ private:
   /// Utility Functions
   float euclideanDistance(std::vector<float> v1, std::vector<float> v2);
   float optimizedEuclideanDistance(const std::vector<float>& v1, const std::vector<float>& v2);
-  std::vector<float> calculateCentroid(const std::vector< std::vector<float> >& vectors);
-  std::vector<float> optimizedCalculateCentroid(const std::vector< std::vector<float> >& vectors);
+  std::vector<float> calculateCentroid(const std::vector< std::vector<float>>& vectors);
+  std::vector<float> optimizedCalculateCentroid(const std::vector< std::vector<float>>& vectors);
+  std::vector<float> optimizedCalculateCentroidFromIndexes(const std::vector<size_t> &vectors_indexes);
   float distanceFromClosestCentroid(const std::vector<float> &point);
+  size_t indexOfClosestCentroid(const std::vector<float> &point);
+  std::vector<size_t> returnCluterElemetsIndexes(const size_t &cluster);
   float clusteringError();
   
   /// Clustering Fuctions
   void kmeans_pp();
   void assignmentStep();
+  void updateStep();
   
 public:
   KMeans(const std::vector<std::vector<float>> &images,
