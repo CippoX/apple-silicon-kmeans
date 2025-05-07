@@ -53,3 +53,12 @@ void load_MNIST(    const char* images_file, const char* labels_file,
   
   file2.close();
 }
+
+
+
+template <typename T>
+
+std::set<T> setFromVector(std::vector<T> v) {
+  std::set<std::string> set(v.begin(), v.end());
+  return set;
+}

@@ -12,6 +12,7 @@
 #include <vector>
 #include <cmath>
 #include <arm_neon.h>
+#include <set>
 
 class KMeans {
 private:
@@ -33,9 +34,9 @@ private:
   std::vector<float> optimizedCalculateCentroidFromIndexes(const std::vector<size_t> &vectors_indexes);
   float distanceFromClosestCentroid(const std::vector<float> &point);
   size_t indexOfClosestCentroid(const std::vector<float> &point);
-  std::vector<size_t> returnCluterElemetsIndexes(const size_t &cluster);
-  std::vector<size_t> returnLabelElemetsIndexes(const size_t &label);
-  size_t returnNumberOfLabelElemets(const size_t &label);
+  std::vector<size_t> returnClusterElementsIndexes(const size_t &cluster);
+  std::vector<size_t> returnLabelElementsIndexes(const size_t &label);
+  size_t returnNumberOfLabelElements(const size_t &label);
   
   float clusteringEntropy();
   float trueLabelsEntropy();

@@ -229,7 +229,7 @@ size_t KMeans::indexOfClosestCentroid(const std::vector<float> &point) {
 
 
 
-std::vector<size_t> KMeans::returnCluterElemetsIndexes(const size_t &cluster) {
+std::vector<size_t> KMeans::returnClusterElementsIndexes(const size_t &cluster) {
   std::vector<size_t> indexes;
   
   for(size_t i = 0; i < clusters.size(); i++) {
@@ -243,7 +243,7 @@ std::vector<size_t> KMeans::returnCluterElemetsIndexes(const size_t &cluster) {
 
 
 
-std::vector<size_t> KMeans::returnLabelElemetsIndexes(const size_t &label) {
+std::vector<size_t> KMeans::returnLabelElementsIndexes(const size_t &label) {
   std::vector<size_t> indexes;
   
   for(size_t i = 0; i < labels.size(); i++) {
@@ -257,7 +257,7 @@ std::vector<size_t> KMeans::returnLabelElemetsIndexes(const size_t &label) {
 
 
 
-size_t KMeans::returnNumberOfLabelElemets(const size_t &label) {
+size_t KMeans::returnNumberOfLabelElements(const size_t &label) {
   size_t counter = 0;
   
   for(size_t i = 0; i < labels.size(); i++) {
@@ -273,27 +273,33 @@ size_t KMeans::returnNumberOfLabelElemets(const size_t &label) {
 
 
 float KMeans::clusteringEntropy() {
+  size_t N = images.size();
   float entropy = 0.0f;
-  
-  for(size_t i = 0; i < centroids.size(); i++) {
-    size_t C_i = returnCluterElemetsIndexes(i).size();
-    size_t N = images.size();
-    entropy -= (C_i / N) * log((C_i / N));
+
+  for (size_t i = 0; i < centroids.size(); i++) {
+    size_t count = returnClusterElementsIndexes(i).size();
+    if (count == 0) continue;
+
+    float p = float(count) / float(N);
+    entropy -= p * std::log(p);
   }
-  
   return entropy;
 }
 
 
 
 float KMeans::trueLabelsEntropy() {
+  size_t N = images.size();
   float entropy = 0.0f;
-  for(size_t i = 0; i < centroids.size(); i++) {
-    size_t L_i = returnNumberOfLabelElemets(i);
-    size_t N = images.size();
-    entropy -= (L_i / N) * log((L_i / N));
+  std::set<size_t> distinct_labels(labels.begin(), labels.end());
+
+  for (size_t i = 0; i < centroids.size(); i++) {
+    size_t count = returnNumberOfLabelElements(i);
+    if (count == 0) continue;
+
+    float p = float(count) / float(N);
+    entropy -= p * std::log(p);
   }
-  
   return entropy;
 }
 
@@ -314,22 +320,33 @@ float KMeans::clusteringError() {
 
 /// **Supervised Measure**
 float KMeans::normalizedMutualInformation() {
+  std::set<size_t> distinct_labels(labels.begin(), labels.end());
+  
   float HC = clusteringEntropy();
   float HL = trueLabelsEntropy();
   
   float mutual_information = 0.0f;
-  size_t N = images.size();
+  float N = float(images.size());
   
   for(int i = 0; i < centroids.size(); i++) {
-    for (int j = 0; j < labels.size(); j++) {
-      std::vector<size_t> C_i = returnCluterElemetsIndexes(i);
-      std::vector<size_t> L_i = returnLabelElemetsIndexes(j);
+    for (int j = 0; j < distinct_labels.size(); j++) {
+      std::vector<size_t> C_i = returnClusterElementsIndexes(i);
+      std::vector<size_t> L_i = returnLabelElementsIndexes(j);
+      std::set<size_t> intersection;
       
+      std::set_intersection(
+                            C_i.begin(), C_i.end(),
+                            L_i.begin(), L_i.end(),
+                            std::inserter(intersection, intersection.begin())
+                            );
       
+      if(intersection.size() == 0 || C_i.size() == 0 || L_i.size() == 0) continue;;
+      
+      mutual_information += (intersection.size() / N) * std::log((N * intersection.size()) / (C_i.size() * L_i.size()));
     }
   }
   
-  return 0.0f;
+  return mutual_information / ((HC + HL) / 2.0f);
 }
 
 
@@ -384,7 +401,7 @@ void KMeans::assignmentStep() {
 
 void KMeans::updateStep() {
   for(size_t i = 0; i < centroids.size(); i++) {
-    centroids[i] = optimizedCalculateCentroidFromIndexes(returnCluterElemetsIndexes(i));
+    centroids[i] = optimizedCalculateCentroidFromIndexes(returnClusterElementsIndexes(i));
   }
 }
 
@@ -430,16 +447,18 @@ void KMeans::test() {
   float E = 0.0f;
   
   {
-    Timer timer("Clustering");
-    for (size_t i = 0; i < 10; i++) {
+    Timer timer("Clustering 200 iterations");
+    for (size_t i = 0; i < 200; i++) {
       assignmentStep();
       updateStep();
       float E_aux = clusteringError();
       float delta = E_aux - E;
       E = E_aux;
       
-      std::cout << "Error " << E << std::endl;
-      std::cout << "Error Delta: " << delta << std::endl;
+      /*std::cout << "Error " << E << std::endl;
+      std::cout << "Error Delta: " << delta << std::endl;*/
+      
+      std::cout << "MI: " << normalizedMutualInformation() << std::endl;
     }
   }
 }
