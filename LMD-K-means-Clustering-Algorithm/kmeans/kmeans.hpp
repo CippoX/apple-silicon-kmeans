@@ -34,7 +34,13 @@ private:
   float distanceFromClosestCentroid(const std::vector<float> &point);
   size_t indexOfClosestCentroid(const std::vector<float> &point);
   std::vector<size_t> returnCluterElemetsIndexes(const size_t &cluster);
+  std::vector<size_t> returnLabelElemetsIndexes(const size_t &label);
+  size_t returnNumberOfLabelElemets(const size_t &label);
+  
+  float clusteringEntropy();
+  float trueLabelsEntropy();
   float clusteringError();
+  float normalizedMutualInformation();
   
   /// Clustering Fuctions
   void kmeans_pp();

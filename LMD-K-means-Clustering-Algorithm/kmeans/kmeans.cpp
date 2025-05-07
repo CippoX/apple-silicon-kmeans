@@ -243,6 +243,61 @@ std::vector<size_t> KMeans::returnCluterElemetsIndexes(const size_t &cluster) {
 
 
 
+std::vector<size_t> KMeans::returnLabelElemetsIndexes(const size_t &label) {
+  std::vector<size_t> indexes;
+  
+  for(size_t i = 0; i < labels.size(); i++) {
+    if (labels[i] == label) {
+      indexes.push_back(i);
+    }
+  }
+  
+  return indexes;
+}
+
+
+
+size_t KMeans::returnNumberOfLabelElemets(const size_t &label) {
+  size_t counter = 0;
+  
+  for(size_t i = 0; i < labels.size(); i++) {
+    if(labels[i] == label) {
+      counter++;
+    }
+  }
+  
+  return counter;
+}
+
+
+
+
+float KMeans::clusteringEntropy() {
+  float entropy = 0.0f;
+  
+  for(size_t i = 0; i < centroids.size(); i++) {
+    size_t C_i = returnCluterElemetsIndexes(i).size();
+    size_t N = images.size();
+    entropy -= (C_i / N) * log((C_i / N));
+  }
+  
+  return entropy;
+}
+
+
+
+float KMeans::trueLabelsEntropy() {
+  float entropy = 0.0f;
+  for(size_t i = 0; i < centroids.size(); i++) {
+    size_t L_i = returnNumberOfLabelElemets(i);
+    size_t N = images.size();
+    entropy -= (L_i / N) * log((L_i / N));
+  }
+  
+  return entropy;
+}
+
+
 /// **Unsupervided Measure, a.k.a intertia**
 /// Note: by accesing by cluster, since we are jumping from one image to another, we are not taking into account
 /// cache locality, and we and up with a lot of cache misses, which results in 11.000ms just the execution of
@@ -257,6 +312,25 @@ float KMeans::clusteringError() {
 }
 
 
+/// **Supervised Measure**
+float KMeans::normalizedMutualInformation() {
+  float HC = clusteringEntropy();
+  float HL = trueLabelsEntropy();
+  
+  float mutual_information = 0.0f;
+  size_t N = images.size();
+  
+  for(int i = 0; i < centroids.size(); i++) {
+    for (int j = 0; j < labels.size(); j++) {
+      std::vector<size_t> C_i = returnCluterElemetsIndexes(i);
+      std::vector<size_t> L_i = returnLabelElemetsIndexes(j);
+      
+      
+    }
+  }
+  
+  return 0.0f;
+}
 
 
 
