@@ -281,7 +281,7 @@ float KMeans::clusteringEntropy() {
     if (count == 0) continue;
 
     float p = float(count) / float(N);
-    entropy -= p * std::log(p);
+    entropy -= p * std::log2(p);
   }
   return entropy;
 }
@@ -298,7 +298,7 @@ float KMeans::trueLabelsEntropy() {
     if (count == 0) continue;
 
     float p = float(count) / float(N);
-    entropy -= p * std::log(p);
+    entropy -= p * std::log2(p);
   }
   return entropy;
 }
@@ -342,7 +342,7 @@ float KMeans::normalizedMutualInformation() {
       
       if(intersection.size() == 0 || C_i.size() == 0 || L_i.size() == 0) continue;;
       
-      mutual_information += (intersection.size() / N) * std::log((N * intersection.size()) / (C_i.size() * L_i.size()));
+      mutual_information += (intersection.size() / N) * std::log2((N * intersection.size()) / (C_i.size() * L_i.size()));
     }
   }
   
@@ -445,15 +445,19 @@ void KMeans::test() {
   kmeans_pp();
   
   float E = 0.0f;
+  int i = 0;
   
   {
-    Timer timer("Clustering 200 iterations");
-    for (size_t i = 0; i < 200; i++) {
+    Timer timer("Clustering");
+    while (true){
       assignmentStep();
       updateStep();
       float E_aux = clusteringError();
       float delta = E_aux - E;
       E = E_aux;
+      i++;
+      if (delta == 0) break;
+      
       
       /*std::cout << "Error " << E << std::endl;
       std::cout << "Error Delta: " << delta << std::endl;*/
@@ -461,5 +465,7 @@ void KMeans::test() {
       std::cout << "MI: " << normalizedMutualInformation() << std::endl;
     }
   }
+  
+  std::cout << "Number of iterations: " << i << std::endl;
 }
 
