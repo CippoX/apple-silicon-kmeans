@@ -85,7 +85,7 @@ float KMeans::optimizedEuclideanDistance(const std::vector<float>& v1, const std
     
     float *res = (float *)&simd_squared;
     
-    sum += res[0] + res[1] + res[2] + res[3] + res[4] + res[5] + res[6] + res[3];
+    sum += res[0] + res[1] + res[2] + res[3] + res[4] + res[5] + res[6] + res[7];
   }
   
   for (; i < vectorspace_dimension; i++) {
@@ -293,7 +293,7 @@ float KMeans::trueLabelsEntropy() {
   float entropy = 0.0f;
   std::set<size_t> distinct_labels(labels.begin(), labels.end());
 
-  for (size_t i = 0; i < centroids.size(); i++) {
+  for (size_t i = 0; i < distinct_labels.size(); i++) {
     size_t count = returnNumberOfLabelElements(i);
     if (count == 0) continue;
 
@@ -331,18 +331,18 @@ float KMeans::normalizedMutualInformation() {
   for(int i = 0; i < centroids.size(); i++) {
     for (int j = 0; j < distinct_labels.size(); j++) {
       std::vector<size_t> C_i = returnClusterElementsIndexes(i);
-      std::vector<size_t> L_i = returnLabelElementsIndexes(j);
+      std::vector<size_t> L_j = returnLabelElementsIndexes(j);
       std::set<size_t> intersection;
       
       std::set_intersection(
                             C_i.begin(), C_i.end(),
-                            L_i.begin(), L_i.end(),
+                            L_j.begin(), L_j.end(),
                             std::inserter(intersection, intersection.begin())
                             );
       
-      if(intersection.size() == 0 || C_i.size() == 0 || L_i.size() == 0) continue;;
+      if(intersection.size() == 0 || C_i.size() == 0 || L_j.size() == 0) continue;;
       
-      mutual_information += (intersection.size() / N) * std::log2((N * intersection.size()) / (C_i.size() * L_i.size()));
+      mutual_information += (intersection.size() / N) * std::log2((N * intersection.size()) / (C_i.size() * L_j.size()));
     }
   }
   
@@ -456,13 +456,14 @@ void KMeans::test() {
       float delta = E_aux - E;
       E = E_aux;
       i++;
+      
       if (delta == 0) break;
       
       
       /*std::cout << "Error " << E << std::endl;
       std::cout << "Error Delta: " << delta << std::endl;*/
       
-      std::cout << "MI: " << normalizedMutualInformation() << std::endl;
+      std::cout << "NMI: " << normalizedMutualInformation() << std::endl;
     }
   }
   
