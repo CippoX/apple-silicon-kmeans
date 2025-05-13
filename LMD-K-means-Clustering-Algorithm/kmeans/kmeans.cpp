@@ -56,9 +56,8 @@ float KMeans::euclideanDistance(std::vector<float> v1, std::vector<float> v2) {
   
   float sum = 0.0;
   
-  for(size_t i = 0; i < vectorspace_dimension; i++) {
+  for(size_t i = 0; i < vectorspace_dimension; i++)
     sum += std::pow(v1[i] - v2[i], 2);
-  }
   
   return std::sqrt(sum);
 }
@@ -107,9 +106,8 @@ std::vector<float> KMeans::calculateCentroid(const std::vector< std::vector<floa
     }
   }
   
-  for(size_t i = 0; i < mean.size(); i++) {
+  for(size_t i = 0; i < mean.size(); i++)
     mean[i] /= vectors.size();
-  }
   
   return mean;
 }
@@ -132,9 +130,8 @@ std::vector<float> KMeans::optimizedCalculateCentroid(const std::vector<std::vec
       vst1q_f32_x2(&mean[j], simd_mean);
     }
 
-    for (; j < vectorspace_dimension; j++) {
+    for (; j < vectorspace_dimension; j++)
       mean[j] += vectors[i][j];
-    }
   }
 
   size_t i = 0;
@@ -148,9 +145,8 @@ std::vector<float> KMeans::optimizedCalculateCentroid(const std::vector<std::vec
     vst1q_f32_x2(&mean[i], simd_mean);
   }
 
-  for (; i < vectorspace_dimension; i++) {
+  for (; i < vectorspace_dimension; i++)
     mean[i] *= (1.0f / number_of_vectors);
-  }
   
   return mean;
 }
@@ -174,9 +170,8 @@ std::vector<float> KMeans::optimizedCalculateCentroidFromIndexes(const std::vect
       vst1q_f32_x2(&mean[j], simd_mean);
     }
 
-    for (; j < vectorspace_dimension; j++) {
+    for (; j < vectorspace_dimension; j++)
       mean[j] += images[vectors_indexes[i]][j];
-    }
   }
 
   size_t i = 0;
@@ -190,9 +185,8 @@ std::vector<float> KMeans::optimizedCalculateCentroidFromIndexes(const std::vect
     vst1q_f32_x2(&mean[i], simd_mean);
   }
 
-  for (; i < vectorspace_dimension; i++) {
+  for (; i < vectorspace_dimension; i++)
     mean[i] *= (1.0f / number_of_vectors);
-  }
   
   return mean;
 }
@@ -202,9 +196,8 @@ std::vector<float> KMeans::optimizedCalculateCentroidFromIndexes(const std::vect
 float KMeans::distanceFromClosestCentroid(const std::vector<float> &point) {
   float minimum_distance = std::numeric_limits<float>::max();
   
-  for(size_t i = 0; i < centroids.size(); i++) {
+  for(size_t i = 0; i < centroids.size(); i++)
     minimum_distance = std::min(minimum_distance, optimizedEuclideanDistance(point, centroids[i]));
-  }
   
   return minimum_distance;
 }
@@ -232,11 +225,9 @@ size_t KMeans::indexOfClosestCentroid(const std::vector<float> &point) {
 std::vector<size_t> KMeans::returnClusterElementsIndexes(const size_t &cluster) {
   std::vector<size_t> indexes;
   
-  for(size_t i = 0; i < clusters.size(); i++) {
-    if (clusters[i] == cluster) {
+  for(size_t i = 0; i < clusters.size(); i++)
+    if (clusters[i] == cluster)
       indexes.push_back(i);
-    }
-  }
   
   return indexes;
 }
@@ -246,11 +237,9 @@ std::vector<size_t> KMeans::returnClusterElementsIndexes(const size_t &cluster) 
 std::vector<size_t> KMeans::returnLabelElementsIndexes(const size_t &label) {
   std::vector<size_t> indexes;
   
-  for(size_t i = 0; i < labels.size(); i++) {
-    if (labels[i] == label) {
+  for(size_t i = 0; i < labels.size(); i++)
+    if (labels[i] == label)
       indexes.push_back(i);
-    }
-  }
   
   return indexes;
 }
@@ -260,11 +249,9 @@ std::vector<size_t> KMeans::returnLabelElementsIndexes(const size_t &label) {
 size_t KMeans::returnNumberOfLabelElements(const size_t &label) {
   size_t counter = 0;
   
-  for(size_t i = 0; i < labels.size(); i++) {
-    if(labels[i] == label) {
+  for(size_t i = 0; i < labels.size(); i++)
+    if(labels[i] == label)
       counter++;
-    }
-  }
   
   return counter;
 }
@@ -311,9 +298,9 @@ float KMeans::trueLabelsEntropy() {
 float KMeans::clusteringError() {
   float E = 0.0f;
   
-  for (size_t i = 0; i < images.size(); i++) {
+  for (size_t i = 0; i < images.size(); i++)
     E += optimizedEuclideanDistance(images[i], centroids[clusters[i]]);
-  }
+  
   return E;
 }
 
@@ -392,17 +379,15 @@ void KMeans::kmeans_pp() {
 
 
 void KMeans::assignmentStep() {
-  for(size_t i = 0; i < images.size(); i++) {
+  for(size_t i = 0; i < images.size(); i++)
     clusters[i] = indexOfClosestCentroid(images[i]);
-  }
 }
 
 
 
 void KMeans::updateStep() {
-  for(size_t i = 0; i < centroids.size(); i++) {
+  for(size_t i = 0; i < centroids.size(); i++)
     centroids[i] = optimizedCalculateCentroidFromIndexes(returnClusterElementsIndexes(i));
-  }
 }
 
 
