@@ -408,23 +408,11 @@ void KMeans::test() {
   {
     Timer timer("Centroid calculation test");
     std::vector<float> v = calculateCentroid(images);
-    
-    float sum = 0.0f;
-    for (float e : v) {
-      sum += e;
-    }
-    std::cout << "sum of means " << sum << std::endl;
   }
   
   {
     Timer timer("Optimized centroid calculation test");
     std::vector<float> v = optimizedCalculateCentroid(images);
-    
-    float sum = 0.0f;
-    for (float e : v) {
-      sum += e;
-    }
-    std::cout << "sum of means " << sum << std::endl;
   }
   
   kmeans_pp();
