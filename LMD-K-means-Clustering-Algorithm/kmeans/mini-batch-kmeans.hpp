@@ -20,11 +20,13 @@ private:
   std::vector<std::vector<float>> images;
   std::vector<int> labels;
   
-  /// Clustering varibles
-  std::vector<size_t> clusters;
-  std::vector<std::vector<float>> centroids;
+  /// Clustering constants & varibles
   size_t number_of_centroids;
   size_t vectorspace_dimension;
+  size_t mini_batch_size;
+
+  std::vector<size_t> clusters;
+  std::vector<std::vector<float>> centroids;
   std::vector<size_t> mini_batch;
   
   /// Utility Functions
@@ -50,9 +52,10 @@ private:
   
 public:
   MiniBatchKMeans(const std::vector<std::vector<float>> &images,
-         const std::vector<int> &_labels,
-         size_t _number_of_centroids,
-         size_t _vectorspace_dimension);
+                  const std::vector<int> &_labels,
+                  size_t _number_of_centroids,
+                  size_t _vectorspace_dimension,
+                  size_t _mini_batch_size);
   void test();
 };
 

@@ -10,14 +10,16 @@
 #include <random>
 
 MiniBatchKMeans::MiniBatchKMeans(const std::vector< std::vector<float>> &_images,
-               const std::vector<int> &_labels,
-               size_t _number_of_centroids,
-               size_t _vectorspace_dimension) {
+                                 const std::vector<int> &_labels,
+                                 size_t _number_of_centroids,
+                                 size_t _vectorspace_dimension,
+                                 size_t _mini_batch_size) {
   
   images = _images;
   labels = _labels;
   number_of_centroids = _number_of_centroids;
   vectorspace_dimension = _vectorspace_dimension;
+  mini_batch_size = _mini_batch_size;
   clusters = std::vector<size_t>(_images.size(), -1);
 }
 
@@ -322,13 +324,13 @@ void MiniBatchKMeans::test() {
   kmeans_pp();
   assignWholeDataset();
   
-  float E = -0.0f;
+  float E = std::numeric_limits<float>::max();
   int i = 0;
   
   {
     Timer timer("Clustering");
     while(true) {
-      select_mini_batch(10000);
+      select_mini_batch(mini_batch_size);
       assignmentStep();
       updateStep();
       
@@ -338,12 +340,12 @@ void MiniBatchKMeans::test() {
       i++;
       
       //FIXME: first iteration results in instant stopping
-      if (delta > -500.0f) break;
+      if (delta > 0.0f) break;
       
-      /*std::cout << "Error " << E << std::endl; */
-      std::cout << "Error Delta: " << delta << std::endl;
+      /*std::cout << "Error " << E << std::endl;
+      std::cout << "Error Delta: " << delta << std::endl; */
       
-      std::cout << "NMI: " << normalizedMutualInformation() << std::endl;
+      std::cout << "Error Delta: " << delta << " NMI: " << normalizedMutualInformation() << std::endl;
     }
   }
   

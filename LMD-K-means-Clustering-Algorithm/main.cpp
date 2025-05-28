@@ -26,7 +26,7 @@ int main() {
     load_MNIST("/Users/palmi/XcodeProjects/LMD-K-means-Clustering-Algorithm/LMD-K-means-Clustering-Algorithm/data/mnist-images.txt", "/Users/palmi/XcodeProjects/LMD-K-means-Clustering-Algorithm/LMD-K-means-Clustering-Algorithm/data/mnist-labels.txt", images, labels);
   }
  
-  MiniBatchKMeans kmeans(images, labels, 10, 784);
+  MiniBatchKMeans kmeans(images, labels, 20, 784, 10000);
   kmeans.test();
   
   
