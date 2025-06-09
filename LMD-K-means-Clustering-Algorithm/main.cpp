@@ -8,14 +8,22 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <omp.h>
 
-#include "kmeans.hpp"
-#include "timer.hpp"
-#include "utility.hpp"
-#include "mini-batch-kmeans.hpp"
+#include "kmeans/kmeans.hpp"
+#include "timer/timer.hpp"
+#include "utility/utility.hpp"
+#include "kmeans/mini-batch-kmeans.hpp"
+#include "kmeans/parallel-mini-batch-kmeans.hpp"
 
-
-// g++-14 main.cpp -fopenmp -o main
+/// Compile with
+/**
+ g++ main.cpp kmeans/kmeans.cpp kmeans/mini-batch-kmeans.cpp kmeans/parallel-mini-batch-kmeans.cpp timer/timer.cpp utility/utility.cpp -fopenmp -o main
+ 
+ or
+ 
+ clang++ main.cpp kmeans/kmeans.cpp kmeans/mini-batch-kmeans.cpp kmeans/parallel-mini-batch-kmeans.cpp timer/timer.cpp utility/utility.cpp -fopenmp -o main
+ */
 
 int main() {
   std::vector<std::vector<float>> images;
@@ -25,19 +33,9 @@ int main() {
     Timer timer("load_MNIST");
     load_MNIST("/Users/palmi/XcodeProjects/LMD-K-means-Clustering-Algorithm/LMD-K-means-Clustering-Algorithm/data/mnist-images.txt", "/Users/palmi/XcodeProjects/LMD-K-means-Clustering-Algorithm/LMD-K-means-Clustering-Algorithm/data/mnist-labels.txt", images, labels);
   }
- 
-  MiniBatchKMeans kmeans(images, labels, 20, 784, 10000);
+  
+  ParallelMiniBatchKMeans kmeans(images, labels, 10, 784, 70000);
   kmeans.test();
-  
-  
-  /*std::cout << "No. Images: " << images.size() << std::endl;
-  for (int i=0; i<28; i++) {
-    for (int j=0; j<28; j++)
-      std::cout<<images[0][i*28+j] << " ";
-    std::cout << std::endl;
-  }
-  
-  std::cout << "Image is " << labels[0] << std::endl;*/
   
   return 0;
 }

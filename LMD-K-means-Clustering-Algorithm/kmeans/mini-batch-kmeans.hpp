@@ -41,7 +41,7 @@ private:
   
   float clusteringEntropy();
   float trueLabelsEntropy();
-  float clusteringError();
+  double clusteringError();
   float normalizedMutualInformation();
   
   /// Clustering Fuctions

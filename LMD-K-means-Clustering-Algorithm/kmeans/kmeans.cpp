@@ -6,9 +6,10 @@
 //
 
 #include "kmeans.hpp"
-#include "timer.hpp"
+#include "../timer/timer.hpp"
 #include <random>
-
+#include <thread>
+#include <omp.h>
 
 class KMeansException : public std::exception {
 private:
@@ -305,8 +306,8 @@ float KMeans::trueLabelsEntropy() {
 /// Note: by accesing by cluster, since we are jumping from one image to another, we are not taking into account
 /// cache locality, and we and up with a lot of cache misses, which results in 11.000ms just the execution of
 /// clusteringError(). By accessing by image, we avoid this overhead.
-float KMeans::clusteringError() {
-  float E = 0.0f;
+double KMeans::clusteringError() {
+  double E = 0.0f;
   
   for (size_t i = 0; i < images.size(); i++)
     E += optimizedEuclideanDistance(images[i], centroids[clusters[i]]);
@@ -363,12 +364,10 @@ void KMeans::kmeans_pp() {
   std::mt19937 gen(rd());
   std::uniform_int_distribution<size_t> uni(0, images.size() - 1);
   
-  // Choose the first centroid uniformly from the data points
   size_t first = uni(gen);
   centroids.push_back(images[first]);
   std::cout << first << std::endl;
   
-  // Select all the other centroids
   for (size_t c = 0; c < number_of_centroids - 1; c++) {
     std::vector<float> squared_distances;
 
@@ -387,8 +386,41 @@ void KMeans::kmeans_pp() {
 }
 
 
+/*
+ Error Delta: 1.16213e+08 NMI: 0.316374
+ Error Delta: -3.95241e+06 NMI: 0.443117
+ Error Delta: -721656 NMI: 0.470122
+ Error Delta: -278725 NMI: 0.480353
+ Error Delta: -162775 NMI: 0.486418
+ Error Delta: -122049 NMI: 0.491461
+ Error Delta: -94666.2 NMI: 0.495966
+ ...
+ Error Delta: -0.950317 NMI: 0.505788
+ Error Delta: 58.6343 NMI: 0.505837
+ Error Delta: 15.4062 NMI: 0.505828
+ Error Delta: 12.8264 NMI: 0.505819
+ Error Delta: 7.99597 NMI: 0.505815
+ Clustering: 130302ms
+ Number of iterations: 84
+ */
+
+void KMeans::deterministic_initialization() {
+  centroids.push_back(images[12354]);
+  centroids.push_back(images[15549]);
+  centroids.push_back(images[494]);
+  centroids.push_back(images[16792]);
+  centroids.push_back(images[66488]);
+  centroids.push_back(images[12359]);
+  centroids.push_back(images[33808]);
+  centroids.push_back(images[27472]);
+  centroids.push_back(images[7883]);
+  centroids.push_back(images[38153]);
+}
+
+
 
 void KMeans::assignmentStep() {
+#pragma omp parallel for schedule(static)
   for(size_t i = 0; i < images.size(); i++)
     clusters[i] = indexOfClosestCentroid(images[i]);
 }
@@ -396,11 +428,12 @@ void KMeans::assignmentStep() {
 
 
 void KMeans::updateStep() {
+#pragma omp parallel for schedule(static)
   for(size_t i = 0; i < centroids.size(); i++)
     centroids[i] = optimizedCalculateCentroidFromIndexes(returnClusterElementsIndexes(i));
 }
 
-
+void dummyTask() {}
 
 void KMeans::test() {
   
@@ -425,28 +458,54 @@ void KMeans::test() {
     std::vector<float> v = optimizedCalculateCentroid(images);
   }
   
-  kmeans_pp();
+  {
+    Timer timer("Thread Spawning test");
+    std::thread t(dummyTask);
+    t.join();
+  }
   
-  float E = 0.0f;
+  deterministic_initialization();
+  
+// #define DEBUG_KMEANS
+  
+  double E = 0.0f;
   int i = 0;
   
   {
     Timer timer("Clustering");
     while (true){
-      assignmentStep();
-      updateStep();
-      float E_aux = clusteringError();
-      float delta = E_aux - E;
-      E = E_aux;
-      i++;
       
-      if (delta == 0) break;
+      {
+#ifdef DEBUG_KMEANS
+        Timer timer("assignmentStep");
+#endif
+        assignmentStep();
+      }
       
+      {
+#ifdef DEBUG_KMEANS
+        Timer timer("updateStep");
+#endif
+        updateStep();
+      }
       
-      /*std::cout << "Error " << E << std::endl;
-      std::cout << "Error Delta: " << delta << std::endl;*/
-      
-      std::cout << "NMI: " << normalizedMutualInformation() << std::endl;
+      {
+#ifdef DEBUG_KMEANS
+        Timer timer("clusteringError");
+#endif
+        double E_aux = clusteringError();
+        double delta = E_aux - E;
+        E = E_aux;
+        i++;
+        
+        if (delta == 0) break;
+        
+        //std::cout << "Error " << E << std::endl;
+        std::cout << "Error Delta: " << delta << " NMI: " << normalizedMutualInformation() << std::endl;
+      }
+#ifdef DEBUG_KMEANS
+      std::cout << std::endl;
+#endif
     }
   }
   

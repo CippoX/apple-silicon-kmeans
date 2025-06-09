@@ -244,9 +244,18 @@
 		A5E030142D8A09A300689597 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = YES;
 				CODE_SIGN_STYLE = Automatic;
+				CXX = "/opt/homebrew/opt/llvm/bin/clang++";
 				DEVELOPMENT_TEAM = 9G83Q3NY42;
 				ENABLE_HARDENED_RUNTIME = YES;
+				GCC_OPTIMIZATION_LEVEL = 3;
+				GCC_VERSION = "";
+				HEADER_SEARCH_PATHS = /opt/homebrew/opt/libomp/include;
+				LIBRARY_SEARCH_PATHS = /opt/homebrew/opt/libomp/lib;
+				OTHER_CPLUSPLUSFLAGS = "";
+				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -254,9 +263,17 @@
 		A5E030152D8A09A300689597 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = YES;
 				CODE_SIGN_STYLE = Automatic;
+				CXX = "/opt/homebrew/opt/llvm/bin/clang++";
 				DEVELOPMENT_TEAM = 9G83Q3NY42;
 				ENABLE_HARDENED_RUNTIME = YES;
+				GCC_OPTIMIZATION_LEVEL = 3;
+				GCC_VERSION = "";
+				HEADER_SEARCH_PATHS = /opt/homebrew/opt/libomp/include;
+				LIBRARY_SEARCH_PATHS = /opt/homebrew/opt/libomp/lib;
+				OTHER_CPLUSPLUSFLAGS = "";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

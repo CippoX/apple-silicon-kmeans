@@ -1,19 +1,19 @@
 //
-//  mini-batch-kmeans.cpp
+//  parallel-mini-batch-kmeans.cpp
 //  LMD-K-means-Clustering-Algorithm
 //
-//  Created by Tommaso Palmisano on 27/05/25.
+//  Created by Tommaso Palmisano on 06/06/25.
 //
 
-#include "mini-batch-kmeans.hpp"
+#include "parallel-mini-batch-kmeans.hpp"
 #include "../timer/timer.hpp"
 #include <random>
 
-MiniBatchKMeans::MiniBatchKMeans(const std::vector< std::vector<float>> &_images,
-                                 const std::vector<int> &_labels,
-                                 size_t _number_of_centroids,
-                                 size_t _vectorspace_dimension,
-                                 size_t _mini_batch_size) {
+ParallelMiniBatchKMeans::ParallelMiniBatchKMeans(const std::vector< std::vector<float>> &_images,
+                                                 const std::vector<int> &_labels,
+                                                 size_t _number_of_centroids,
+                                                 size_t _vectorspace_dimension,
+                                                 size_t _mini_batch_size) {
   
   images = _images;
   labels = _labels;
@@ -24,11 +24,21 @@ MiniBatchKMeans::MiniBatchKMeans(const std::vector< std::vector<float>> &_images
 }
 
 
+float ParallelMiniBatchKMeans::euclideanDistance(std::vector<float> v1, std::vector<float> v2) {
+  float sum = 0.0;
+  
+  for(size_t i = 0; i < vectorspace_dimension; i++)
+    sum += std::pow(v1[i] - v2[i], 2);
+  
+  return std::sqrt(sum);
+}
 
-float MiniBatchKMeans::optimizedEuclideanDistance(const std::vector<float>& v1, const std::vector<float>& v2) {
+
+
+float ParallelMiniBatchKMeans::optimizedEuclideanDistance(const std::vector<float>& v1, const std::vector<float>& v2) {
   float sum = 0.0f;
   size_t i = 0;
-
+  
   for(; i + 7 < vectorspace_dimension; i += 8) {
     float32x4x2_t simd_v1 = vld1q_f32_x2(&v1[i]);
     float32x4x2_t simd_v2 = vld1q_f32_x2(&v2[i]);
@@ -47,8 +57,8 @@ float MiniBatchKMeans::optimizedEuclideanDistance(const std::vector<float>& v1, 
   }
   
   for (; i < vectorspace_dimension; i++) {
-      float diff = v1[i] - v2[i];
-      sum += diff * diff;
+    float diff = v1[i] - v2[i];
+    sum += diff * diff;
   }
   
   return std::sqrt(sum);
@@ -56,7 +66,7 @@ float MiniBatchKMeans::optimizedEuclideanDistance(const std::vector<float>& v1, 
 
 
 
-std::vector<float> MiniBatchKMeans::optimizedCalculateCentroidFromIndexes(const std::vector<size_t> &vectors_indexes) {
+std::vector<float> ParallelMiniBatchKMeans::optimizedCalculateCentroidFromIndexes(const std::vector<size_t> &vectors_indexes) {
   size_t number_of_vectors = vectors_indexes.size();
   
   if (number_of_vectors == 0) {
@@ -64,7 +74,7 @@ std::vector<float> MiniBatchKMeans::optimizedCalculateCentroidFromIndexes(const 
   }
   
   std::vector<float> mean(vectorspace_dimension, 0);
-
+  
   for (size_t i = 0; i < number_of_vectors; i++) {
     size_t j = 0;
     
@@ -76,11 +86,11 @@ std::vector<float> MiniBatchKMeans::optimizedCalculateCentroidFromIndexes(const 
       
       vst1q_f32_x2(&mean[j], simd_mean);
     }
-
+    
     for (; j < vectorspace_dimension; j++)
       mean[j] += images[vectors_indexes[i]][j];
   }
-
+  
   size_t i = 0;
   float32x4_t inv_num_vectors = vdupq_n_f32(1.0f / number_of_vectors);
   
@@ -88,10 +98,10 @@ std::vector<float> MiniBatchKMeans::optimizedCalculateCentroidFromIndexes(const 
     float32x4x2_t simd_mean = vld1q_f32_x2(&mean[i]);
     simd_mean.val[0] = vmulq_f32(simd_mean.val[0], inv_num_vectors);
     simd_mean.val[1] = vmulq_f32(simd_mean.val[1], inv_num_vectors);
-
+    
     vst1q_f32_x2(&mean[i], simd_mean);
   }
-
+  
   for (; i < vectorspace_dimension; i++)
     mean[i] *= (1.0f / number_of_vectors);
   
@@ -100,7 +110,7 @@ std::vector<float> MiniBatchKMeans::optimizedCalculateCentroidFromIndexes(const 
 
 
 
-float MiniBatchKMeans::distanceFromClosestCentroid(const std::vector<float> &point) {
+float ParallelMiniBatchKMeans::distanceFromClosestCentroid(const std::vector<float> &point) {
   float minimum_distance = std::numeric_limits<float>::max();
   
   for(size_t i = 0; i < centroids.size(); i++)
@@ -111,7 +121,7 @@ float MiniBatchKMeans::distanceFromClosestCentroid(const std::vector<float> &poi
 
 
 
-size_t MiniBatchKMeans::indexOfClosestCentroid(const std::vector<float> &point) {
+size_t ParallelMiniBatchKMeans::indexOfClosestCentroid(const std::vector<float> &point) {
   float minimum_distance = std::numeric_limits<float>::max();
   size_t index = 0;
   
@@ -129,7 +139,7 @@ size_t MiniBatchKMeans::indexOfClosestCentroid(const std::vector<float> &point) 
 
 
 
-std::vector<size_t> MiniBatchKMeans::returnClusterElementsIndexes(const size_t &cluster) {
+std::vector<size_t> ParallelMiniBatchKMeans::returnClusterElementsIndexes(const size_t &cluster) {
   std::vector<size_t> indexes;
   
   for(size_t i = 0; i < clusters.size(); i++)
@@ -141,7 +151,7 @@ std::vector<size_t> MiniBatchKMeans::returnClusterElementsIndexes(const size_t &
 
 
 
-std::vector<size_t> MiniBatchKMeans::returnLabelElementsIndexes(const size_t &label) {
+std::vector<size_t> ParallelMiniBatchKMeans::returnLabelElementsIndexes(const size_t &label) {
   std::vector<size_t> indexes;
   
   for(size_t i = 0; i < labels.size(); i++)
@@ -153,7 +163,7 @@ std::vector<size_t> MiniBatchKMeans::returnLabelElementsIndexes(const size_t &la
 
 
 
-size_t MiniBatchKMeans::returnNumberOfLabelElements(const size_t &label) {
+size_t ParallelMiniBatchKMeans::returnNumberOfLabelElements(const size_t &label) {
   size_t counter = 0;
   
   for(size_t i = 0; i < labels.size(); i++)
@@ -166,14 +176,14 @@ size_t MiniBatchKMeans::returnNumberOfLabelElements(const size_t &label) {
 
 
 
-float MiniBatchKMeans::clusteringEntropy() {
+float ParallelMiniBatchKMeans::clusteringEntropy() {
   size_t N = images.size();
   float entropy = 0.0f;
-
+  
   for (size_t i = 0; i < centroids.size(); i++) {
     size_t count = returnClusterElementsIndexes(i).size();
     if (count == 0) continue;
-
+    
     float p = float(count) / float(N);
     entropy -= p * std::log2(p);
   }
@@ -182,15 +192,15 @@ float MiniBatchKMeans::clusteringEntropy() {
 
 
 
-float MiniBatchKMeans::trueLabelsEntropy() {
+float ParallelMiniBatchKMeans::trueLabelsEntropy() {
   size_t N = images.size();
   float entropy = 0.0f;
   std::set<size_t> distinct_labels(labels.begin(), labels.end());
-
+  
   for (size_t i = 0; i < distinct_labels.size(); i++) {
     size_t count = returnNumberOfLabelElements(i);
     if (count == 0) continue;
-
+    
     float p = float(count) / float(N);
     entropy -= p * std::log2(p);
   }
@@ -202,9 +212,10 @@ float MiniBatchKMeans::trueLabelsEntropy() {
 /// Note: by accesing by cluster, since we are jumping from one image to another, we are not taking into account
 /// cache locality, and we and up with a lot of cache misses, which results in 11.000ms just the execution of
 /// clusteringError(). By accessing by image, we avoid this overhead.
-double MiniBatchKMeans::clusteringError() {
+double ParallelMiniBatchKMeans::clusteringError() {
   double E = 0.0f;
   
+#pragma omp parallel for reduction(+:E)
   for (size_t i = 0; i < images.size(); i++)
     E += optimizedEuclideanDistance(images[i], centroids[clusters[i]]);
   
@@ -213,7 +224,7 @@ double MiniBatchKMeans::clusteringError() {
 
 
 /// **Supervised Measure**
-float MiniBatchKMeans::normalizedMutualInformation() {
+float ParallelMiniBatchKMeans::normalizedMutualInformation() {
   std::set<size_t> distinct_labels(labels.begin(), labels.end());
   
   float HC = clusteringEntropy();
@@ -222,6 +233,7 @@ float MiniBatchKMeans::normalizedMutualInformation() {
   float mutual_information = 0.0f;
   float N = float(images.size());
   
+#pragma omp parallel for reduction(+:mutual_information)
   for(int i = 0; i < centroids.size(); i++) {
     for (int j = 0; j < distinct_labels.size(); j++) {
       std::vector<size_t> C_i = returnClusterElementsIndexes(i);
@@ -245,7 +257,7 @@ float MiniBatchKMeans::normalizedMutualInformation() {
 
 
 
-void MiniBatchKMeans::select_mini_batch(size_t k) {
+void ParallelMiniBatchKMeans::select_mini_batch(size_t k) {
   std::vector<size_t> aux_vector = std::vector<size_t>(images.size(), 0);
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -260,34 +272,35 @@ void MiniBatchKMeans::select_mini_batch(size_t k) {
 }
 
 /**===----------------------------------------------------------------------===
-
+ 
  - Clustering Functions
  - kmeans_pp
  - assignmentStep
  
-===----------------------------------------------------------------------=== **/
+ ===----------------------------------------------------------------------=== **/
 
 
 // Initialize the centroids using k-means++
-void MiniBatchKMeans::kmeans_pp() {
+void ParallelMiniBatchKMeans::kmeans_pp() {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<size_t> uni(0, images.size() - 1);
   
-  // Choose the first centroid uniformly from the data points
   size_t first = uni(gen);
+  
+  
   centroids.push_back(images[first]);
   std::cout << first << std::endl;
   
-  // Select all the other centroids
   for (size_t c = 0; c < number_of_centroids - 1; c++) {
-    std::vector<float> squared_distances;
-
+    std::vector<float> squared_distances(images.size());
+    
+#pragma omp parallel for schedule(static)
     for (size_t i = 0; i < images.size(); i++) {
-      float minimum_distance = distanceFromClosestCentroid(images[i]);
-      squared_distances.push_back(minimum_distance * minimum_distance);
+      float minDist = distanceFromClosestCentroid(images[i]);
+      squared_distances[i] = minDist * minDist;
     }
-
+    
     std::discrete_distribution<size_t> weighted_dist(squared_distances.begin(), squared_distances.end());
     size_t next_centroid_index = weighted_dist(gen);
     
@@ -299,57 +312,145 @@ void MiniBatchKMeans::kmeans_pp() {
 
 
 
-void MiniBatchKMeans::assignWholeDataset() {
+void ParallelMiniBatchKMeans::deterministic_initialization() {
+  centroids.push_back(images[12354]);
+  centroids.push_back(images[15549]);
+  centroids.push_back(images[494]);
+  centroids.push_back(images[16792]);
+  centroids.push_back(images[66488]);
+  centroids.push_back(images[12359]);
+  centroids.push_back(images[33808]);
+  centroids.push_back(images[27472]);
+  centroids.push_back(images[7883]);
+  centroids.push_back(images[38153]);
+}
+
+
+
+void ParallelMiniBatchKMeans::assignWholeDataset() {
+#pragma omp parallel for schedule(dynamic)
   for(size_t i = 0; i < images.size(); i++)
     clusters[i] = indexOfClosestCentroid(images[i]);
 }
 
 
-
-void MiniBatchKMeans::assignmentStep() {
-  for(size_t i = 0; i < mini_batch.size(); i++)
-    clusters[mini_batch[i]] = indexOfClosestCentroid(images[mini_batch[i]]);
+/**
+ schedule(static) because each iteration does almost the same amount
+ of work (computing distances from a single image to all centroids),
+ a static schedule ensures balanced work distribution with minimal
+ overhead.
+ */
+void ParallelMiniBatchKMeans::assignmentStep() {
+#pragma omp parallel for schedule(static)
+  for (size_t i = 0; i < mini_batch.size(); i++) {
+    size_t idx = mini_batch[i];
+    clusters[idx] = indexOfClosestCentroid(images[idx]);
+  }
 }
 
-
-
-void MiniBatchKMeans::updateStep() {
+/**
+ schedule(dynamic) is used beacause Clusters can be unbalanced,
+ with some having more images than others. Using dynamic helps
+ balance the load.
+ */
+void ParallelMiniBatchKMeans::updateStep() {
+#pragma omp parallel for schedule(dynamic)
   for(size_t i = 0; i < centroids.size(); i++)
     centroids[i] = optimizedCalculateCentroidFromIndexes(returnClusterElementsIndexes(i));
 }
 
+/*
+ AssignmentStep: 244.41ms
+ UpdateStep: 26.7695ms
+ Error Delta: -102.294 NMI: 0.505624
+ clusteringError: 282.792ms
+
+ AssignmentStep: 240.1ms
+ UpdateStep: 31.8131ms
+ Error Delta: -98.02 NMI: 0.505687
+ clusteringError: 282.36ms
+
+ AssignmentStep: 237.168ms
+ UpdateStep: 30.756ms
+ clusteringError: 117.378ms
+ Number of iterations: 78
+ 
+ 
+ AssignmentStep: 244.29ms
+ UpdateStep: 31.6297ms
+ Error Delta: -102.294 NMI: 0.505624
+ clusteringError: 283.18ms
+
+ AssignmentStep: 236.133ms
+ UpdateStep: 30.8874ms
+ Error Delta: -98.02 NMI: 0.505687
+ clusteringError: 283.134ms
+
+ AssignmentStep: 242.53ms
+ UpdateStep: 31.0373ms
+ clusteringError: 117.57ms
+ Number of iterations: 78
+ */
 
 
-void MiniBatchKMeans::test() {
-  kmeans_pp();
-  assignWholeDataset();
+void ParallelMiniBatchKMeans::test() {
+  
+#define DEBUG_KMEANS
+  
+  {
+#ifdef DEBUG_KMEANS
+    Timer timer("K-Means++");
+#endif
+    deterministic_initialization();
+  }
+  
+  {
+#ifdef DEBUG_KMEANS
+    Timer timer("AssignWholeDataset");
+#endif
+    assignWholeDataset();
+  }
   
   double E = std::numeric_limits<double>::max();
   int i = 0;
   
-  {
-    Timer timer("Clustering");
-    while(true) {
-      select_mini_batch(mini_batch_size);
+  while(true) {
+    
+    select_mini_batch(mini_batch_size);
+    
+    
+    {
+#ifdef DEBUG_KMEANS
+      Timer timer("AssignmentStep");
+#endif
       assignmentStep();
+    }
+    
+    {
+#ifdef DEBUG_KMEANS
+      Timer timer("UpdateStep");
+#endif
       updateStep();
-      
+    }
+    
+    {
+#ifdef DEBUG_KMEANS
+      Timer timer("clusteringError");
+#endif
       double E_aux = clusteringError();
       double delta = E_aux - E;
       E = E_aux;
       i++;
       
-      //FIXME: first iteration results in instant stopping
       if (delta < 10.0 && delta > -10.0) break;
-      
-      /*std::cout << "Error " << E << std::endl;
-      std::cout << "Error Delta: " << delta << std::endl; */
-      
-      std::cout << "Error Delta: " << delta << " NMI: " << normalizedMutualInformation() << std::endl;
+        std::cout << "Error Delta: " << delta << " NMI: " << normalizedMutualInformation() << std::endl;
     }
+    
+    std::cout << std::endl;
   }
-  
+#ifdef DEBUG_KMEANS
   assignWholeDataset();
+#endif
   
   std::cout << "Number of iterations: " << i << std::endl;
 }
