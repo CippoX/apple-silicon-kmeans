@@ -7,7 +7,8 @@
 
 #include "parallel-mini-batch-kmeans.hpp"
 #include "../timer/timer.hpp"
-#include <random>
+#include "../utility/utility.hpp"
+
 
 ParallelMiniBatchKMeans::ParallelMiniBatchKMeans(const std::vector< std::vector<float>> &_images,
                                                  const std::vector<int> &_labels,
@@ -21,6 +22,7 @@ ParallelMiniBatchKMeans::ParallelMiniBatchKMeans(const std::vector< std::vector<
   vectorspace_dimension = _vectorspace_dimension;
   mini_batch_size = _mini_batch_size;
   clusters = std::vector<size_t>(_images.size(), -1);
+  v_x = std::vector<size_t>(number_of_centroids, 0);
 }
 
 
@@ -151,6 +153,18 @@ std::vector<size_t> ParallelMiniBatchKMeans::returnClusterElementsIndexes(const 
 
 
 
+std::vector<size_t> ParallelMiniBatchKMeans::returnMiniBatchClusterElementsIndexes(const size_t &cluster) {
+  std::vector<size_t> indexes;
+  for (size_t idx : mini_batch) {
+    if (clusters[idx] == cluster) {
+      indexes.push_back(idx);
+    }
+  }
+  return indexes;
+}
+
+
+
 std::vector<size_t> ParallelMiniBatchKMeans::returnLabelElementsIndexes(const size_t &label) {
   std::vector<size_t> indexes;
   
@@ -215,7 +229,7 @@ float ParallelMiniBatchKMeans::trueLabelsEntropy() {
 double ParallelMiniBatchKMeans::clusteringError() {
   double E = 0.0f;
   
-#pragma omp parallel for reduction(+:E)
+#pragma omp parallel for schedule(dynamic) reduction(+:E)
   for (size_t i = 0; i < images.size(); i++)
     E += optimizedEuclideanDistance(images[i], centroids[clusters[i]]);
   
@@ -233,7 +247,7 @@ float ParallelMiniBatchKMeans::normalizedMutualInformation() {
   float mutual_information = 0.0f;
   float N = float(images.size());
   
-#pragma omp parallel for reduction(+:mutual_information)
+#pragma omp parallel for schedule(dynamic) reduction(+:mutual_information)
   for(int i = 0; i < centroids.size(); i++) {
     for (int j = 0; j < distinct_labels.size(); j++) {
       std::vector<size_t> C_i = returnClusterElementsIndexes(i);
@@ -288,7 +302,6 @@ void ParallelMiniBatchKMeans::kmeans_pp() {
   
   size_t first = uni(gen);
   
-  
   centroids.push_back(images[first]);
   std::cout << first << std::endl;
   
@@ -341,7 +354,7 @@ void ParallelMiniBatchKMeans::assignWholeDataset() {
  overhead.
  */
 void ParallelMiniBatchKMeans::assignmentStep() {
-#pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(dynamic)
   for (size_t i = 0; i < mini_batch.size(); i++) {
     size_t idx = mini_batch[i];
     clusters[idx] = indexOfClosestCentroid(images[idx]);
@@ -355,9 +368,20 @@ void ParallelMiniBatchKMeans::assignmentStep() {
  */
 void ParallelMiniBatchKMeans::updateStep() {
 #pragma omp parallel for schedule(dynamic)
-  for(size_t i = 0; i < centroids.size(); i++)
-    centroids[i] = optimizedCalculateCentroidFromIndexes(returnClusterElementsIndexes(i));
+  for (size_t i = 0; i < centroids.size(); ++i) {
+    std::vector<size_t> batch_idxs = returnMiniBatchClusterElementsIndexes(i);
+    size_t b_i = batch_idxs.size();
+    
+    if (b_i == 0) continue;
+    v_x[i] += b_i;
+    
+    float eta = float(b_i) / float(v_x[i]);
+    std::vector<float> batch_mean = optimizedCalculateCentroidFromIndexes(batch_idxs);
+    
+    centroids[i] = (1.0f - eta) * centroids[i] + eta  * batch_mean;
+  }
 }
+
 
 /*
  AssignmentStep: 244.41ms
@@ -396,12 +420,13 @@ void ParallelMiniBatchKMeans::updateStep() {
 void ParallelMiniBatchKMeans::test() {
   
 #define DEBUG_KMEANS
+  std::cout<<images.size()<<std::endl;
   
   {
 #ifdef DEBUG_KMEANS
     Timer timer("K-Means++");
 #endif
-    deterministic_initialization();
+    kmeans_pp();
   }
   
   {
@@ -442,11 +467,12 @@ void ParallelMiniBatchKMeans::test() {
       E = E_aux;
       i++;
       
-      if (delta < 10.0 && delta > -10.0) break;
-        std::cout << "Error Delta: " << delta << " NMI: " << normalizedMutualInformation() << std::endl;
+      if (delta < 200.0 && delta > -200.0) break;
+      std::cout << "Error Delta: " << delta << " NMI: " << normalizedMutualInformation() << std::endl;
     }
-    
+#ifdef DEBUG_KMEANS
     std::cout << std::endl;
+#endif
   }
 #ifdef DEBUG_KMEANS
   assignWholeDataset();

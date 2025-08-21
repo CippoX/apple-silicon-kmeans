@@ -7,7 +7,8 @@
 
 #include "mini-batch-kmeans.hpp"
 #include "../timer/timer.hpp"
-#include <random>
+#include "../utility/utility.hpp"
+
 
 MiniBatchKMeans::MiniBatchKMeans(const std::vector< std::vector<float>> &_images,
                                  const std::vector<int> &_labels,
@@ -21,6 +22,7 @@ MiniBatchKMeans::MiniBatchKMeans(const std::vector< std::vector<float>> &_images
   vectorspace_dimension = _vectorspace_dimension;
   mini_batch_size = _mini_batch_size;
   clusters = std::vector<size_t>(_images.size(), -1);
+  v_x = std::vector<size_t>(number_of_centroids, 0);
 }
 
 
@@ -136,6 +138,18 @@ std::vector<size_t> MiniBatchKMeans::returnClusterElementsIndexes(const size_t &
     if (clusters[i] == cluster)
       indexes.push_back(i);
   
+  return indexes;
+}
+
+
+
+std::vector<size_t> MiniBatchKMeans::returnMiniBatchClusterElementsIndexes(const size_t &cluster) {
+  std::vector<size_t> indexes;
+  for (size_t idx : mini_batch) {
+    if (clusters[idx] == cluster) {
+      indexes.push_back(idx);
+    }
+  }
   return indexes;
 }
 
@@ -314,8 +328,18 @@ void MiniBatchKMeans::assignmentStep() {
 
 
 void MiniBatchKMeans::updateStep() {
-  for(size_t i = 0; i < centroids.size(); i++)
-    centroids[i] = optimizedCalculateCentroidFromIndexes(returnClusterElementsIndexes(i));
+  for (size_t i = 0; i < centroids.size(); ++i) {
+    std::vector<size_t> batch_idxs = returnMiniBatchClusterElementsIndexes(i);
+    size_t b_i = batch_idxs.size();
+    
+    if (b_i == 0) continue;
+    v_x[i] += b_i;
+    
+    float eta = float(b_i) / float(v_x[i]);
+    std::vector<float> batch_mean = optimizedCalculateCentroidFromIndexes(batch_idxs);
+    
+    centroids[i] = (1.0f - eta) * centroids[i] + eta  * batch_mean;
+  }
 }
 
 
