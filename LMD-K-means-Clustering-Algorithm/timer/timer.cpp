@@ -5,6 +5,7 @@
 //  Created by Tommaso Palmisano on 3/17/25.
 //
 
+// timer.cpp
 #include "timer.hpp"
 
 Timer::Timer() {
@@ -18,23 +19,32 @@ Timer::Timer(std::string timerName) {
 }
 
 Timer::~Timer() {
-  Stop();
+  stop();
 }
 
-void Timer::Stop() {
+void Timer::stop() {
   auto endTimepoint = std::chrono::high_resolution_clock::now();
   
   auto start = std::chrono::time_point_cast<std::chrono::nanoseconds>(m_StartTimepoint).time_since_epoch().count();
   auto end = std::chrono::time_point_cast<std::chrono::nanoseconds>(endTimepoint).time_since_epoch().count();
   
   auto duration = end - start;
-  auto ms = duration * 0.000001;
   
-  if(name == "") {
-    std::cout<<ms<<"ms\n";
-  } else {
-    std::cout<< name << ": " << ms <<"ms\n";
-  }
+  timings[name].first += duration;
+  timings[name].second++;
+
+  auto ms = duration * 0.000001;
+  std::cout << name << ": " << ms << " ms\n";
 }
 
-std::chrono::time_point<std::chrono::high_resolution_clock> m_StartTimepoint;
+void Timer::printAverages() {
+  for(const auto& [key, val] : timings) {
+    double avg_ns = static_cast<double>(val.first) / val.second;
+    double avg_ms = avg_ns * 0.000001;
+    if(key.empty()) {
+      std::cout << "Average: " << avg_ms << " ms\n";
+    } else {
+      std::cout << key << " average: " << avg_ms << " ms (" << val.second << " runs)\n";
+    }
+  }
+}

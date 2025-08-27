@@ -308,7 +308,7 @@ void ParallelMiniBatchKMeans::kmeans_pp() {
   for (size_t c = 0; c < number_of_centroids - 1; c++) {
     std::vector<float> squared_distances(images.size());
     
-#pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(dynamic)
     for (size_t i = 0; i < images.size(); i++) {
       float minDist = distanceFromClosestCentroid(images[i]);
       squared_distances[i] = minDist * minDist;
@@ -326,16 +326,16 @@ void ParallelMiniBatchKMeans::kmeans_pp() {
 
 
 void ParallelMiniBatchKMeans::deterministic_initialization() {
-  centroids.push_back(images[12354]);
-  centroids.push_back(images[15549]);
-  centroids.push_back(images[494]);
-  centroids.push_back(images[16792]);
-  centroids.push_back(images[66488]);
-  centroids.push_back(images[12359]);
-  centroids.push_back(images[33808]);
-  centroids.push_back(images[27472]);
-  centroids.push_back(images[7883]);
-  centroids.push_back(images[38153]);
+  centroids.push_back(images[1473]);
+  centroids.push_back(images[219195]);
+  centroids.push_back(images[53461]);
+  centroids.push_back(images[287133]);
+  centroids.push_back(images[234032]);
+  centroids.push_back(images[88649]);
+  centroids.push_back(images[94962]);
+  centroids.push_back(images[40579]);
+  centroids.push_back(images[227313]);
+  centroids.push_back(images[149303]);
 }
 
 
@@ -347,12 +347,6 @@ void ParallelMiniBatchKMeans::assignWholeDataset() {
 }
 
 
-/**
- schedule(static) because each iteration does almost the same amount
- of work (computing distances from a single image to all centroids),
- a static schedule ensures balanced work distribution with minimal
- overhead.
- */
 void ParallelMiniBatchKMeans::assignmentStep() {
 #pragma omp parallel for schedule(dynamic)
   for (size_t i = 0; i < mini_batch.size(); i++) {
@@ -382,59 +376,16 @@ void ParallelMiniBatchKMeans::updateStep() {
   }
 }
 
-
-/*
- AssignmentStep: 244.41ms
- UpdateStep: 26.7695ms
- Error Delta: -102.294 NMI: 0.505624
- clusteringError: 282.792ms
-
- AssignmentStep: 240.1ms
- UpdateStep: 31.8131ms
- Error Delta: -98.02 NMI: 0.505687
- clusteringError: 282.36ms
-
- AssignmentStep: 237.168ms
- UpdateStep: 30.756ms
- clusteringError: 117.378ms
- Number of iterations: 78
- 
- 
- AssignmentStep: 244.29ms
- UpdateStep: 31.6297ms
- Error Delta: -102.294 NMI: 0.505624
- clusteringError: 283.18ms
-
- AssignmentStep: 236.133ms
- UpdateStep: 30.8874ms
- Error Delta: -98.02 NMI: 0.505687
- clusteringError: 283.134ms
-
- AssignmentStep: 242.53ms
- UpdateStep: 31.0373ms
- clusteringError: 117.57ms
- Number of iterations: 78
- */
-
-
 void ParallelMiniBatchKMeans::test() {
   
 #define DEBUG_KMEANS
   std::cout<<images.size()<<std::endl;
   
-  {
-#ifdef DEBUG_KMEANS
-    Timer timer("K-Means++");
-#endif
-    kmeans_pp();
-  }
   
-  {
-#ifdef DEBUG_KMEANS
-    Timer timer("AssignWholeDataset");
-#endif
-    assignWholeDataset();
-  }
+  // kmeans_pp();
+  deterministic_initialization();
+  
+  assignWholeDataset();
   
   double E = std::numeric_limits<double>::max();
   int i = 0;
@@ -458,25 +409,33 @@ void ParallelMiniBatchKMeans::test() {
       updateStep();
     }
     
+    double delta = 0.0;
+    float NMI = 0.0f;
+    
     {
 #ifdef DEBUG_KMEANS
       Timer timer("clusteringError");
 #endif
       double E_aux = clusteringError();
-      double delta = E_aux - E;
+      delta = E_aux - E;
       E = E_aux;
-      i++;
-      
-      if (delta < 200.0 && delta > -200.0) break;
-      std::cout << "Error Delta: " << delta << " NMI: " << normalizedMutualInformation() << std::endl;
+      NMI = normalizedMutualInformation();
     }
+    
+    i++;
+    std::cout << "Error Delta: " << delta << " NMI: " << normalizedMutualInformation() << std::endl;
+    if ((delta < 50.0 && delta > -50.0) /*|| i == 1000*/) break;
+    
 #ifdef DEBUG_KMEANS
     std::cout << std::endl;
 #endif
   }
-#ifdef DEBUG_KMEANS
-  assignWholeDataset();
-#endif
   
+  assignWholeDataset();
+  
+#ifdef DEBUG_KMEANS
+  std::cout << std::endl;
+  Timer::printAverages();
+#endif
   std::cout << "Number of iterations: " << i << std::endl;
 }

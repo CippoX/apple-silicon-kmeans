@@ -366,9 +366,6 @@ void MiniBatchKMeans::test() {
       //FIXME: first iteration results in instant stopping
       if (delta < 10.0 && delta > -10.0) break;
       
-      /*std::cout << "Error " << E << std::endl;
-      std::cout << "Error Delta: " << delta << std::endl; */
-      
       std::cout << "Error Delta: " << delta << " NMI: " << normalizedMutualInformation() << std::endl;
     }
   }

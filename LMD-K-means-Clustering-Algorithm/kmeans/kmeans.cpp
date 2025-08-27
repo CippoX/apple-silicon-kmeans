@@ -55,7 +55,7 @@ float KMeans::euclideanDistance(std::vector<float> v1, std::vector<float> v2) {
     throw KMeansException("The two vectors must have the same dimension.");
   }
   
-  float sum = 0.0;
+  float sum = 0.0f;
   
   for(size_t i = 0; i < vectorspace_dimension; i++)
     sum += std::pow(v1[i] - v2[i], 2);
@@ -385,24 +385,6 @@ void KMeans::kmeans_pp() {
   }
 }
 
-
-/*
- Error Delta: 1.16213e+08 NMI: 0.316374
- Error Delta: -3.95241e+06 NMI: 0.443117
- Error Delta: -721656 NMI: 0.470122
- Error Delta: -278725 NMI: 0.480353
- Error Delta: -162775 NMI: 0.486418
- Error Delta: -122049 NMI: 0.491461
- Error Delta: -94666.2 NMI: 0.495966
- ...
- Error Delta: -0.950317 NMI: 0.505788
- Error Delta: 58.6343 NMI: 0.505837
- Error Delta: 15.4062 NMI: 0.505828
- Error Delta: 12.8264 NMI: 0.505819
- Error Delta: 7.99597 NMI: 0.505815
- Clustering: 130302ms
- Number of iterations: 84
- */
 
 void KMeans::deterministic_initialization() {
   centroids.push_back(images[12354]);

@@ -49,9 +49,8 @@
              utility/utility.cpp -fopenmp -o main
  
   4, You  may specify the number of threads at runtime with
-     OMP_NUM_THREADS=4 ./main
+     OMP_NUM_THREADS=4 ./main num_clusters batch_size
  */
-
 
 
 int main(int argc, char* argv[]) {
@@ -68,11 +67,10 @@ int main(int argc, char* argv[]) {
   
   load_MNIST("/Users/palmi/XcodeProjects/LMD-K-means-Clustering-Algorithm/LMD-K-means-Clustering-Algorithm/data/mnist-images.txt", "/Users/palmi/XcodeProjects/LMD-K-means-Clustering-Algorithm/LMD-K-means-Clustering-Algorithm/data/mnist-labels.txt", images, labels);
   
-  images = expandDataset(images, 200000);
+  auto [expanded_dataset, expanded_labels] = expandDataset(images, labels, 350000);
   
-  int num_features = 784;
-  
-  ParallelMiniBatchKMeans kmeans(images, labels, num_clusters, num_features, batch_size);
+  // ParallelMiniBatchKMeans kmeans(images, labels, num_clusters, 784, batch_size);
+  ParallelMiniBatchKMeans kmeans(expanded_dataset, expanded_labels, num_clusters, 784, batch_size);
   
   {
     Timer timer("Total Clustering Time");

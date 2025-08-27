@@ -5,16 +5,6 @@
 //  Created by Tommaso Palmisano on 3/17/25.
 //
 
-#include <iostream>
-#include <thread>
-#include <chrono>
-#include <arm_neon.h>
-#include <vector>
-#include <random>
-#include <algorithm>
-#include <cmath>
-
-
 #include "utility.hpp"
 
 // g++-14 -std=c++11 -O3 -fopenmp kmeans.cpp -o kmeans
@@ -58,15 +48,6 @@ void load_MNIST(    const char* images_file, const char* labels_file,
     file2 >> labels[i];
   
   file2.close();
-}
-
-
-
-template <typename T>
-
-std::set<T> setFromVector(std::vector<T> v) {
-  std::set<std::string> set(v.begin(), v.end());
-  return set;
 }
 
 
@@ -117,37 +98,4 @@ std::vector<float> operator+(const std::vector<float>& v1, const std::vector<flo
   }
   
   return result;
-}
-
-
-
-std::vector<std::vector<float>> expandDataset(std::vector<std::vector<float>> const& dataset, size_t to) {
-  if (dataset.empty() || to <= dataset.size()) {
-    return dataset;
-  }
-  
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_int_distribution<size_t> uni(0, 99);
-  
-  std::vector<std::vector<float>> expanded_dataset = dataset;
-  size_t vectorspace_dimension = dataset[0].size();
-
-  for (size_t i = 0; i < to - dataset.size(); i++) {
-    std::vector<float> aux = dataset[i % dataset.size()];
-    
-    for(size_t j = 0; j < vectorspace_dimension; j++) {
-      size_t prob = uni(gen);
-      
-      if(prob >= 80) {
-        aux[j] = 255;
-      } else if(prob <= 19) {
-        aux[j] = 0;
-      }
-    }
-    
-    expanded_dataset.push_back(aux);
-  }
-  
-  return expanded_dataset;
 }
